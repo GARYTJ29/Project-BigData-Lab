@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from fastapi import FastAPI, Request, File, UploadFile
 from fastapi.responses import JSONResponse
@@ -22,10 +21,21 @@ model_path = "model/cnn_model_2.keras"
 model = load_model(model_path)
 
 def preprocess_image(image):
-    resized = cv2.resize(image, (128, 128))
-    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
-    normalized = gray / 255.0
+    # Resize the image to (128, 128) using Pillow
+    resized = image.resize((128, 128))
+    
+    # Convert the image to grayscale using Pillow
+    gray = resized.convert('L')
+    
+    # Convert the grayscale image to a NumPy array
+    gray_array = np.array(gray)
+    
+    # Normalize the pixel values to the range [0, 1]
+    normalized = gray_array / 255.0
+    
+    # Reshape the array to (1, 128, 128, 1)
     reshaped = np.reshape(normalized, (1, 128, 128, 1))
+    
     return reshaped
 
 class RateLimitingMiddleware(BaseHTTPMiddleware):
@@ -76,7 +86,6 @@ def metrics():
 async def predict_gender(request: Request, file: UploadFile = File(...)):
     # Read the uploaded image file
     img = Image.open(file.file)
-    img = np.array(img)
 
     # Preprocess the image
     features = preprocess_image(img)
